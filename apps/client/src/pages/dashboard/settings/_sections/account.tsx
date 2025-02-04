@@ -22,17 +22,13 @@ import { useForm } from "react-hook-form";
 
 import { UserAvatar } from "@/client/components/user-avatar";
 import { useToast } from "@/client/hooks/use-toast";
-import { useResendVerificationEmail } from "@/client/services/auth";
-import { useUploadImage } from "@/client/services/storage";
-import { useUpdateUser, useUser } from "@/client/services/user";
+import { useSupabase } from "@/client/providers/supabase.provider";
+import { useUser } from "@/client/services/user";
 
 export const AccountSettings = () => {
   const { user } = useUser();
   const { toast } = useToast();
-  const { updateUser, loading } = useUpdateUser();
-  const { uploadImage, loading: isUploading } = useUploadImage();
-  const { resendVerificationEmail } = useResendVerificationEmail();
-
+  const { supabase } = useSupabase();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<UpdateUserDto>({
@@ -63,38 +59,110 @@ export const AccountSettings = () => {
   const onSubmit = async (data: UpdateUserDto) => {
     if (!user) return;
 
-    // Check if email has changed and display a toast message to confirm the email change
-    if (user.email !== data.email) {
+    try {
+      // Update email if changed
+      if (user.email !== data.email) {
+        const { error: emailError } = await supabase.auth.updateUser({ 
+          email: data.email 
+        });
+        
+        if (emailError) throw emailError;
+
+        toast({
+          variant: "info",
+          title: t`Check your email for the confirmation link to update your email address.`,
+        });
+      }
+
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: data.name,
+          username: data.username,
+          picture: data.picture,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
       toast({
-        variant: "info",
-        title: t`Check your email for the confirmation link to update your email address.`,
+        variant: "success",
+        title: t`Your account has been updated successfully.`,
+      });
+
+      form.reset(data);
+    } catch (error) {
+      toast({
+        variant: "error",
+        title: t`Failed to update your account.`,
+        description: error.message,
       });
     }
-
-    await updateUser({
-      name: data.name,
-      email: data.email,
-      picture: data.picture,
-      username: data.username,
-    });
-
-    form.reset(data);
   };
 
   const onSelectImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      const response = await uploadImage(file);
-      const url = response.data;
+    if (!user || !event.target.files?.length) return;
 
-      await updateUser({ picture: url });
+    try {
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/profile.${fileExt}`;
+
+      // Upload image to Supabase Storage
+      const { error: uploadError, data } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with new picture URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ picture: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        variant: "success",
+        title: t`Profile picture updated successfully.`,
+      });
+    } catch (error) {
+      toast({
+        variant: "error",
+        title: t`Failed to upload profile picture.`,
+        description: error.message,
+      });
     }
   };
 
   const onResendVerificationEmail = async () => {
-    const data = await resendVerificationEmail();
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user?.email,
+      });
 
-    toast({ variant: "success", title: data.message });
+      if (error) throw error;
+
+      toast({ 
+        variant: "success", 
+        title: t`Verification email has been sent.` 
+      });
+    } catch (error) {
+      toast({
+        variant: "error",
+        title: t`Failed to send verification email.`,
+        description: error.message,
+      });
+    }
   };
 
   if (!user) return null;
@@ -130,7 +198,6 @@ export const AccountSettings = () => {
                     <input ref={inputRef} hidden type="file" onChange={onSelectImage} />
 
                     <motion.button
-                      disabled={isUploading}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}

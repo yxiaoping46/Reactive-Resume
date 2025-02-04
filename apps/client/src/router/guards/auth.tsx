@@ -1,18 +1,15 @@
-import { Navigate, Outlet, useLocation } from "react-router";
-
-import { useUser } from "@/client/services/user";
+import { Navigate, useLocation } from "react-router";
+import { useAuth } from "@/client/providers/auth.provider";
 
 export const AuthGuard = () => {
   const location = useLocation();
-  const redirectTo = location.pathname + location.search;
-
-  const { user, loading } = useUser();
+  const { session, loading } = useAuth();
 
   if (loading) return null;
 
-  if (user) {
-    return <Outlet />;
+  if (!session) {
+    return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  return <Navigate replace to={`/auth/login?redirect=${redirectTo}`} />;
+  return <Navigate to={location.state?.from ?? "/dashboard"} replace />;
 };

@@ -41,9 +41,16 @@ export const LoginPage = () => {
       await signIn(data.email, data.password);
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      console.error('Login error:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to sign in. Please check your credentials.";
+      
       form.setError("root", { 
-        message: error instanceof Error ? error.message : "Failed to sign in. Please check your credentials."
+        message: errorMessage
+      });
+
+      form.setError("email", { 
+        message: "Please check your email and password"
       });
     }
   };
@@ -76,6 +83,13 @@ export const LoginPage = () => {
             className="flex flex-col gap-y-4"
             onSubmit={form.handleSubmit(onSubmit)}
           >
+            {/* Show form-level errors */}
+            {form.formState.errors.root && (
+              <div className="text-sm text-destructive">
+                {form.formState.errors.root.message}
+              </div>
+            )}
+
             <FormField
               name="email"
               control={form.control}
@@ -116,8 +130,12 @@ export const LoginPage = () => {
             />
 
             <div className="mt-4">
-              <Button type="submit" disabled={loading} className="w-full">
-                {t`Sign in`}
+              <Button 
+                type="submit" 
+                disabled={loading || form.formState.isSubmitting} 
+                className="w-full"
+              >
+                {form.formState.isSubmitting ? t`Signing in...` : t`Sign in`}
               </Button>
             </div>
           </form>

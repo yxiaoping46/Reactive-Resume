@@ -16,42 +16,29 @@ import { UpdateUserDto, UserDto } from "@reactive-resume/dto";
 import { ErrorMessage } from "@reactive-resume/utils";
 import type { Response } from "express";
 
-import { AuthService } from "../auth/auth.service";
-import { TwoFactorGuard } from "../auth/guards/two-factor.guard";
-import { User } from "./decorators/user.decorator";
+import { SupabaseGuard } from "../auth/guards/supabase.guard";
+import { SupabaseUser } from "../auth/decorators/supabase-user.decorator";
+import { User } from '@supabase/supabase-js';
 import { UserService } from "./user.service";
 
 @ApiTags("User")
 @Controller("user")
 export class UserController {
   constructor(
-    private readonly authService: AuthService,
     private readonly userService: UserService,
   ) {}
 
   @Get("me")
-  @UseGuards(TwoFactorGuard)
-  fetch(@User() user: UserDto) {
+  @UseGuards(SupabaseGuard)
+  fetch(@SupabaseUser() user: User) {
     return user;
   }
 
   @Patch("me")
-  @UseGuards(TwoFactorGuard)
-  async update(@User("email") email: string, @Body() updateUserDto: UpdateUserDto) {
+  @UseGuards(SupabaseGuard)
+  async update(@SupabaseUser() user: User, @Body() updateUserDto: UpdateUserDto) {
     try {
-      // If user is updating their email, send a verification email
-      if (updateUserDto.email && updateUserDto.email !== email) {
-        await this.userService.updateByEmail(email, {
-          emailVerified: false,
-          email: updateUserDto.email,
-        });
-
-        await this.authService.sendVerificationEmail(updateUserDto.email);
-
-        email = updateUserDto.email;
-      }
-
-      return await this.userService.updateByEmail(email, {
+      return await this.userService.updateByEmail(user.email!, {
         name: updateUserDto.name,
         picture: updateUserDto.picture,
         username: updateUserDto.username,
@@ -68,13 +55,9 @@ export class UserController {
   }
 
   @Delete("me")
-  @UseGuards(TwoFactorGuard)
-  async delete(@User("id") id: string, @Res({ passthrough: true }) response: Response) {
-    await this.userService.deleteOneById(id);
-
-    response.clearCookie("Authentication");
-    response.clearCookie("Refresh");
-
+  @UseGuards(SupabaseGuard)
+  async delete(@SupabaseUser() user: User, @Res({ passthrough: true }) response: Response) {
+    await this.userService.deleteOneById(user.id);
     response.status(200).send({ message: "Sorry to see you go, goodbye!" });
   }
 }

@@ -12,7 +12,6 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { User as UserEntity } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import {
   CreateResumeDto,
@@ -23,11 +22,9 @@ import {
 import { resumeDataSchema } from "@reactive-resume/schema";
 import { ErrorMessage } from "@reactive-resume/utils";
 import { zodToJsonSchema } from "zod-to-json-schema";
-
-import { User } from "@/server/user/decorators/user.decorator";
-
-import { OptionalGuard } from "../auth/guards/optional.guard";
-import { TwoFactorGuard } from "../auth/guards/two-factor.guard";
+import { User } from '@supabase/supabase-js';
+import { SupabaseGuard } from "../auth/guards/supabase.guard";
+import { SupabaseUser } from "../auth/decorators/supabase-user.decorator";
 import { Resume } from "./decorators/resume.decorator";
 import { ResumeGuard } from "./guards/resume.guard";
 import { ResumeService } from "./resume.service";
@@ -43,8 +40,8 @@ export class ResumeController {
   }
 
   @Post()
-  @UseGuards(TwoFactorGuard)
-  async create(@User() user: UserEntity, @Body() createResumeDto: CreateResumeDto) {
+  @UseGuards(SupabaseGuard)
+  async create(@SupabaseUser() user: User, @Body() createResumeDto: CreateResumeDto) {
     try {
       return await this.resumeService.create(user.id, createResumeDto);
     } catch (error) {
@@ -58,8 +55,8 @@ export class ResumeController {
   }
 
   @Post("import")
-  @UseGuards(TwoFactorGuard)
-  async import(@User() user: UserEntity, @Body() importResumeDto: unknown) {
+  @UseGuards(SupabaseGuard)
+  async import(@SupabaseUser() user: User, @Body() importResumeDto: unknown) {
     try {
       const result = importResumeSchema.parse(importResumeDto);
       return await this.resumeService.import(user.id, result);
@@ -74,61 +71,58 @@ export class ResumeController {
   }
 
   @Get()
-  @UseGuards(TwoFactorGuard)
-  findAll(@User() user: UserEntity) {
+  @UseGuards(SupabaseGuard)
+  findAll(@SupabaseUser() user: User) {
     return this.resumeService.findAll(user.id);
   }
 
   @Get(":id")
-  @UseGuards(TwoFactorGuard, ResumeGuard)
+  @UseGuards(SupabaseGuard, ResumeGuard)
   findOne(@Resume() resume: ResumeDto) {
     return resume;
   }
 
   @Get(":id/statistics")
-  @UseGuards(TwoFactorGuard)
-  findOneStatistics(@Param("id") id: string) {
+  @UseGuards(SupabaseGuard)
+  findOneStatistics(@SupabaseUser() user: User, @Param("id") id: string) {
     return this.resumeService.findOneStatistics(id);
   }
 
   @Get("/public/:username/:slug")
-  @UseGuards(OptionalGuard)
-  findOneByUsernameSlug(
+  async findOneByUsernameSlug(
     @Param("username") username: string,
     @Param("slug") slug: string,
-    @User("id") userId: string,
+    @SupabaseUser() user?: User,
   ) {
-    return this.resumeService.findOneByUsernameSlug(username, slug, userId);
+    return this.resumeService.findOneByUsernameSlug(username, slug, user?.id);
   }
 
   @Patch(":id")
-  @UseGuards(TwoFactorGuard)
+  @UseGuards(SupabaseGuard)
   update(
-    @User() user: UserEntity,
+    @SupabaseUser() user: User,
     @Param("id") id: string,
     @Body() updateResumeDto: UpdateResumeDto,
   ) {
     return this.resumeService.update(user.id, id, updateResumeDto);
   }
 
-  @Patch(":id/lock")
-  @UseGuards(TwoFactorGuard)
-  lock(@User() user: UserEntity, @Param("id") id: string, @Body("set") set = true) {
+  @Post(":id/lock")
+  @UseGuards(SupabaseGuard)
+  lock(@SupabaseUser() user: User, @Param("id") id: string, @Body("set") set = true) {
     return this.resumeService.lock(user.id, id, set);
   }
 
   @Delete(":id")
-  @UseGuards(TwoFactorGuard)
-  remove(@User() user: UserEntity, @Param("id") id: string) {
+  @UseGuards(SupabaseGuard)
+  remove(@SupabaseUser() user: User, @Param("id") id: string) {
     return this.resumeService.remove(user.id, id);
   }
 
-  @Get("/print/:id")
-  @UseGuards(OptionalGuard, ResumeGuard)
-  async printResume(@User("id") userId: string | undefined, @Resume() resume: ResumeDto) {
+  @Get(":id/print")
+  async printResume(@SupabaseUser() user: User | undefined, @Resume() resume: ResumeDto) {
     try {
-      const url = await this.resumeService.printResume(resume, userId);
-
+      const url = await this.resumeService.printResume(resume, user?.id);
       return { url };
     } catch (error) {
       Logger.error(error);
@@ -136,12 +130,11 @@ export class ResumeController {
     }
   }
 
-  @Get("/print/:id/preview")
-  @UseGuards(TwoFactorGuard, ResumeGuard)
-  async printPreview(@Resume() resume: ResumeDto) {
+  @Get(":id/download")
+  @UseGuards(SupabaseGuard, ResumeGuard)
+  async downloadResume(@Resume() resume: ResumeDto) {
     try {
-      const url = await this.resumeService.printPreview(resume);
-
+      const url = await this.resumeService.downloadResume(resume);
       return { url };
     } catch (error) {
       Logger.error(error);

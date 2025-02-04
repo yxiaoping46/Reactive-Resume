@@ -3,20 +3,19 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useSupabase } from "@/client/providers/supabase.provider";
 import { useAuthStore } from "@/client/stores/auth";
+import { useAuth } from "@/client/providers/auth.provider";
 
 export const useUser = () => {
   const { supabase } = useSupabase();
   const setUser = useAuthStore((state) => state.setUser);
+  const { session, loading } = useAuth();
 
   const {
     error,
-    isPending: loading,
     data: user,
   } = useQuery<UserDto | null>({
     queryKey: ["user"],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
       if (!session?.user) return null;
 
       // Get user profile
@@ -51,5 +50,9 @@ export const useUser = () => {
     }
   }, [user, setUser]);
 
-  return { user, loading, error };
+  return {
+    user: session?.user ?? null,
+    loading,
+    error,
+  };
 };
