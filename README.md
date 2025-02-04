@@ -61,7 +61,7 @@ Start creating your standout resume with Reactive Resume today!
 - You can track the number of views or downloads your public resume has received
 - Built with state-of-the-art (at the moment) and dependable technologies that's battle tested and peer reviewed by the open-source community on GitHub
 - **MIT License**, so do what you like with the code as long as you credit the original author
-- And yes, there’s a dark mode too 🌓
+- And yes, there's a dark mode too 🌓
 
 ## Built With
 
@@ -74,6 +74,48 @@ Start creating your standout resume with Reactive Resume today!
 - SMTP Server (to send password recovery emails)
 - GitHub/Google OAuth (for quickly authenticating users)
 - LinguiJS and Crowdin (for translation management and localization)
+
+## Local Development Setup
+
+To set up the project for local development, follow these steps:
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/AmruthPillai/Reactive-Resume.git
+   cd Reactive-Resume
+   ```
+
+2. **Setup Environment Variables**
+   ```bash
+   cp .env.example .env
+   ```
+   The default values in `.env.example` should work fine for local development.
+
+3. **Install Dependencies**
+   ```bash
+   pnpm install
+   ```
+
+4. **Start Development Services**
+   Start the required services (database, storage, etc.) using Docker Compose:
+   ```bash
+   docker compose -f compose.dev.yml up -d
+   ```
+
+5. **Setup Database**
+   Run the Prisma migrations to set up the database:
+   ```bash
+   pnpm prisma:generate
+   pnpm prisma:migrate:dev
+   ```
+
+6. **Start Development Servers**
+   Start both the frontend and backend development servers:
+   ```bash
+   pnpm dev
+   ```
+
+After completing these steps, the development server should be running at `http://localhost:5173` for the frontend and `http://localhost:3000` for the backend API.
 
 ## Star History
 
