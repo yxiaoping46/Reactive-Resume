@@ -5,9 +5,11 @@ import { Outlet } from "react-router";
 
 import { helmetContext } from "../constants/helmet";
 import { queryClient } from "../libs/query-client";
+import { AuthProvider } from "./auth.provider";
 import { AuthRefreshProvider } from "./auth-refresh";
 import { DialogProvider } from "./dialog";
 import { LocaleProvider } from "./locale";
+import { SupabaseProvider } from "./supabase.provider";
 import { ThemeProvider } from "./theme";
 import { Toaster } from "./toaster";
 
@@ -15,17 +17,21 @@ export const Providers = () => (
   <LocaleProvider>
     <HelmetProvider context={helmetContext}>
       <QueryClientProvider client={queryClient}>
-        <AuthRefreshProvider>
-          <ThemeProvider>
-            <TooltipProvider>
-              <DialogProvider>
-                <Outlet />
+        <SupabaseProvider>
+          <AuthProvider>
+            <AuthRefreshProvider>
+              <ThemeProvider>
+                <TooltipProvider>
+                  <DialogProvider>
+                    <Outlet />
 
-                <Toaster />
-              </DialogProvider>
-            </TooltipProvider>
-          </ThemeProvider>
-        </AuthRefreshProvider>
+                    <Toaster />
+                  </DialogProvider>
+                </TooltipProvider>
+              </ThemeProvider>
+            </AuthRefreshProvider>
+          </AuthProvider>
+        </SupabaseProvider>
       </QueryClientProvider>
     </HelmetProvider>
   </LocaleProvider>

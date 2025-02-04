@@ -2,7 +2,6 @@ import { t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import { Helmet } from "react-helmet-async";
 
-import { ContributorsSection } from "./sections/contributors";
 import { FAQSection } from "./sections/faq";
 import { FeaturesSection } from "./sections/features";
 import { HeroSection } from "./sections/hero";
@@ -38,7 +37,6 @@ export const HomePage = () => {
       <TestimonialsSection />
       <SupportSection />
       <FAQSection />
-      <ContributorsSection />
     </main>
   );
 };

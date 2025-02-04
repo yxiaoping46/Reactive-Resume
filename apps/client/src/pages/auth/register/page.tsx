@@ -4,8 +4,6 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { registerSchema } from "@reactive-resume/dto";
 import { usePasswordToggle } from "@reactive-resume/hooks";
 import {
-  Alert,
-  AlertTitle,
   Button,
   Form,
   FormControl,
@@ -16,22 +14,19 @@ import {
   FormMessage,
   Input,
 } from "@reactive-resume/ui";
-import { cn } from "@reactive-resume/utils";
 import { useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import type { z } from "zod";
 
-import { useRegister } from "@/client/services/auth";
-import { useFeatureFlags } from "@/client/services/feature";
+import { useAuth } from "@/client/providers/auth.provider";
 
 type FormValues = z.infer<typeof registerSchema>;
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
-  const { flags } = useFeatureFlags();
-  const { register, loading } = useRegister();
+  const { signUp, loading } = useAuth();
 
   const formRef = useRef<HTMLFormElement>(null);
   usePasswordToggle(formRef);
@@ -40,20 +35,20 @@ export const RegisterPage = () => {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
-      username: "",
       email: "",
       password: "",
-      locale: "en-US",
     },
   });
 
   const onSubmit = async (data: FormValues) => {
     try {
-      await register(data);
-
-      void navigate("/auth/verify-email");
-    } catch {
-      form.reset();
+      await signUp(data.email, data.password, data.name);
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      console.error('Registration error:', error);
+      form.setError("root", { 
+        message: error instanceof Error ? error.message : "Failed to create account. Please try again."
+      });
     }
   };
 
@@ -77,13 +72,7 @@ export const RegisterPage = () => {
         </h6>
       </div>
 
-      {flags.isSignupsDisabled && (
-        <Alert variant="error">
-          <AlertTitle>{t`Signups are currently disabled by the administrator.`}</AlertTitle>
-        </Alert>
-      )}
-
-      <div className={cn(flags.isSignupsDisabled && "pointer-events-none select-none blur-sm")}>
+      <div>
         <Form {...form}>
           <form
             ref={formRef}
@@ -102,28 +91,6 @@ export const RegisterPage = () => {
                         message: "John Doe",
                         context:
                           "Localized version of a placeholder name. For example, Max Mustermann in German or Jan Kowalski in Polish.",
-                      })}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              name="username"
-              control={form.control}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t`Username`}</FormLabel>
-                  <FormControl>
-                    <Input
-                      className="lowercase"
-                      placeholder={t({
-                        message: "john.doe",
-                        context:
-                          "Localized version of a placeholder username. For example, max.mustermann in German or jan.kowalski in Polish.",
                       })}
                       {...field}
                     />

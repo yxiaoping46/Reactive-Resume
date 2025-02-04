@@ -4,8 +4,6 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { loginSchema } from "@reactive-resume/dto";
 import { usePasswordToggle } from "@reactive-resume/hooks";
 import {
-  Alert,
-  AlertTitle,
   Button,
   Form,
   FormControl,
@@ -16,35 +14,37 @@ import {
   FormMessage,
   Input,
 } from "@reactive-resume/ui";
-import { cn } from "@reactive-resume/utils";
 import { useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import type { z } from "zod";
 
-import { useLogin } from "@/client/services/auth";
-import { useFeatureFlags } from "@/client/services/feature";
+import { useAuth } from "@/client/providers/auth.provider";
 
 type FormValues = z.infer<typeof loginSchema>;
 
 export const LoginPage = () => {
-  const { login, loading } = useLogin();
-  const { flags } = useFeatureFlags();
+  const navigate = useNavigate();
+  const { signIn, loading } = useAuth();
 
   const formRef = useRef<HTMLFormElement>(null);
   usePasswordToggle(formRef);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { identifier: "", password: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = async (data: FormValues) => {
     try {
-      await login(data);
-    } catch {
-      form.reset();
+      await signIn(data.email, data.password);
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      console.error('Login error:', error);
+      form.setError("root", { 
+        message: error instanceof Error ? error.message : "Failed to sign in. Please check your credentials."
+      });
     }
   };
 
@@ -69,13 +69,7 @@ export const LoginPage = () => {
         </h6>
       </div>
 
-      {flags.isEmailAuthDisabled && (
-        <Alert variant="error">
-          <AlertTitle>{t`Signing in via email is currently disabled by the administrator.`}</AlertTitle>
-        </Alert>
-      )}
-
-      <div className={cn(flags.isEmailAuthDisabled && "pointer-events-none select-none blur-sm")}>
+      <div>
         <Form {...form}>
           <form
             ref={formRef}
@@ -83,7 +77,7 @@ export const LoginPage = () => {
             onSubmit={form.handleSubmit(onSubmit)}
           >
             <FormField
-              name="identifier"
+              name="email"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
@@ -96,7 +90,6 @@ export const LoginPage = () => {
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>{t`You can also enter your username.`}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -122,13 +115,9 @@ export const LoginPage = () => {
               )}
             />
 
-            <div className="mt-4 flex items-center gap-x-4">
-              <Button type="submit" disabled={loading} className="flex-1">
+            <div className="mt-4">
+              <Button type="submit" disabled={loading} className="w-full">
                 {t`Sign in`}
-              </Button>
-
-              <Button asChild variant="link" className="px-4">
-                <Link to="/auth/forgot-password">{t`Forgot Password?`}</Link>
               </Button>
             </div>
           </form>
