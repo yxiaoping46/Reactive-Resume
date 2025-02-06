@@ -68,7 +68,6 @@ Start creating your standout resume with Reactive Resume today!
 - React (Vite), for the frontend
 - NestJS, for the backend
 - Postgres (primary database)
-- Prisma ORM, which frees you to switch to any other relational database with a few minor changes in the code
 - Minio (for object storage: to store avatars, resume PDFs and previews)
 - Browserless (for headless chrome, to print PDFs and generate previews)
 - SMTP Server (to send password recovery emails)
@@ -102,14 +101,7 @@ To set up the project for local development, follow these steps:
    docker compose -f compose.dev.yml up -d
    ```
 
-5. **Setup Database**
-   Run the Prisma migrations to set up the database:
-   ```bash
-   pnpm prisma:generate
-   pnpm prisma:migrate:dev
-   ```
-
-6. **Start Development Servers**
+5. **Start Development Servers**
    Start both the frontend and backend development servers:
    ```bash
    pnpm dev
