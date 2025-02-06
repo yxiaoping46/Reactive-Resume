@@ -9,7 +9,7 @@ import { ImportResumeCard } from "./_components/import-card";
 import { ResumeCard } from "./_components/resume-card";
 
 export const GridView = () => {
-  const { resumes, loading } = useResumes();
+  const { data: resumes, isLoading } = useResumes();
 
   return (
     <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
@@ -24,7 +24,7 @@ export const GridView = () => {
         <ImportResumeCard />
       </motion.div>
 
-      {loading &&
+      {isLoading &&
         Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
@@ -38,7 +38,7 @@ export const GridView = () => {
       {resumes && (
         <AnimatePresence>
           {resumes
-            .sort((a, b) => sortByDate(a, b, "updatedAt"))
+            .sort((a, b) => sortByDate(a, b, "updated_at"))
             .map((resume, index) => (
               <motion.div
                 key={resume.id}

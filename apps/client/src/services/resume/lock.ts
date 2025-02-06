@@ -1,7 +1,6 @@
 import type { ResumeDto } from "@reactive-resume/dto";
 import { useMutation } from "@tanstack/react-query";
-
-import { axios } from "@/client/libs/axios";
+import { useSupabase } from "@/client/providers/supabase.provider";
 import { queryClient } from "@/client/libs/query-client";
 
 type LockResumeArgs = {
@@ -9,29 +8,40 @@ type LockResumeArgs = {
   set: boolean;
 };
 
-export const lockResume = async ({ id, set }: LockResumeArgs) => {
-  const response = await axios.patch(`/resume/${id}/lock`, { set });
-
-  queryClient.setQueryData<ResumeDto>(["resume", { id: response.data.id }], response.data);
-
-  queryClient.setQueryData<ResumeDto[]>(["resumes"], (cache) => {
-    if (!cache) return [response.data];
-    return cache.map((resume) => {
-      if (resume.id === response.data.id) return response.data;
-      return resume;
-    });
-  });
-
-  return response.data;
-};
-
 export const useLockResume = () => {
+  const { supabase } = useSupabase();
+
   const {
     error,
     isPending: loading,
     mutateAsync: lockResumeFn,
   } = useMutation({
-    mutationFn: lockResume,
+    mutationFn: async ({ id, set }: LockResumeArgs) => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error("User not found");
+
+      const { data: resume, error } = await supabase
+        .from('resumes_v3')
+        .update({ locked: set })
+        .eq('id', id)
+        .eq('user_id', user.user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      queryClient.setQueryData<ResumeDto>(["resume", { id: resume.id }], resume);
+
+      queryClient.setQueryData<ResumeDto[]>(["resumes"], (cache) => {
+        if (!cache) return [resume];
+        return cache.map((item) => {
+          if (item.id === resume.id) return resume;
+          return item;
+        });
+      });
+
+      return resume;
+    },
   });
 
   return { lockResume: lockResumeFn, loading, error };

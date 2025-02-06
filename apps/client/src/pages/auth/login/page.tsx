@@ -39,7 +39,7 @@ export const LoginPage = () => {
   const onSubmit = async (data: FormValues) => {
     try {
       await signIn(data.email, data.password);
-      navigate("/dashboard", { replace: true });
+      navigate("/dashboard/resumes", { replace: true });
     } catch (error) {
       const errorMessage = error instanceof Error 
         ? error.message 

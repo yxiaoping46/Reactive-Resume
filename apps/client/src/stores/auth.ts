@@ -1,13 +1,13 @@
-import type { UserDto } from "@reactive-resume/dto";
+import { User } from '@supabase/supabase-js';
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 type AuthState = {
-  user: UserDto | null;
+  user: User | null;
 };
 
 type AuthActions = {
-  setUser: (user: UserDto | null) => void;
+  setUser: (user: User | null) => void;
 };
 
 export const useAuthStore = create<AuthState & AuthActions>()(

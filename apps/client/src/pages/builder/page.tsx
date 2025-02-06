@@ -1,87 +1,102 @@
 import { t } from "@lingui/macro";
-import type { ResumeDto } from "@reactive-resume/dto";
-import { useCallback, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useResume } from "@/client/services/resume";
+import { BuilderHeader } from "./_components/header";
 import { Helmet } from "react-helmet-async";
 import type { LoaderFunction } from "react-router";
 import { redirect } from "react-router";
-
-import { queryClient } from "@/client/libs/query-client";
-import { findResumeById } from "@/client/services/resume";
-import { useBuilderStore } from "@/client/stores/builder";
+import { createClient } from "@supabase/supabase-js";
 import { useResumeStore } from "@/client/stores/resume";
 
 export const BuilderPage = () => {
-  const frameRef = useBuilderStore((state) => state.frame.ref);
-  const setFrameRef = useBuilderStore((state) => state.frame.setRef);
+  const { id = "" } = useParams();
+  const { data: resume, isPending: loading } = useResume(id);
 
-  const resume = useResumeStore((state) => state.resume);
-  const title = useResumeStore((state) => state.resume.title);
+  if (loading) {
+    return (
+      <div className="grid h-screen place-items-center">
+        <div className="text-center">
+          <div className="text-2xl font-bold">{t`Loading Resume`}</div>
+          <div className="text-sm text-muted-foreground">{t`Please wait while we load your resume...`}</div>
+        </div>
+      </div>
+    );
+  }
 
-  const syncResumeToArtboard = useCallback(() => {
-    setImmediate(() => {
-      if (!frameRef?.contentWindow) return;
-      const message = { type: "SET_RESUME", payload: resume.data };
-      frameRef.contentWindow.postMessage(message, "*");
-    });
-  }, [frameRef?.contentWindow, resume.data]);
-
-  // Send resume data to iframe on initial load
-  useEffect(() => {
-    if (!frameRef) return;
-
-    frameRef.addEventListener("load", syncResumeToArtboard);
-
-    return () => {
-      frameRef.removeEventListener("load", syncResumeToArtboard);
-    };
-  }, [frameRef]);
-
-  // Persistently check if iframe has loaded using setInterval
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (frameRef?.contentWindow?.document.readyState === "complete") {
-        syncResumeToArtboard();
-        clearInterval(interval);
-      }
-    }, 100);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [frameRef]);
-
-  // Send resume data to iframe on change of resume data
-  useEffect(syncResumeToArtboard, [resume.data]);
+  if (!resume) {
+    return (
+      <div className="grid h-screen place-items-center">
+        <div className="text-center">
+          <div className="text-2xl font-bold">{t`Resume Not Found`}</div>
+          <div className="text-sm text-muted-foreground">{t`The resume you're looking for doesn't exist.`}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
+    <main className="relative flex h-screen w-screen overflow-hidden">
       <Helmet>
-        <title>
-          {title} - {t`Reactive Resume`}
-        </title>
+        <title>{resume.title} - {t`Reactive Resume`}</title>
       </Helmet>
 
-      <iframe
-        ref={setFrameRef}
-        title={resume.id}
-        src="/artboard/builder"
-        className="mt-16 w-screen"
-        style={{ height: `calc(100vh - 64px)` }}
-      />
-    </>
+      <div className="flex w-80 flex-col border-r">
+        <div className="flex items-center justify-between border-b p-4">
+          <h2 className="font-semibold">{t`Sections`}</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Sections list will go here */}
+        </div>
+      </div>
+
+      <div className="relative flex grow flex-col">
+        <BuilderHeader />
+        <iframe
+          title={resume.title}
+          src={`/artboard/builder?resumeId=${resume.id}`}
+          className="h-full w-full"
+        />
+      </div>
+
+      <div className="flex w-80 flex-col border-l">
+        <div className="flex items-center justify-between border-b p-4">
+          <h2 className="font-semibold">{t`Properties`}</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Properties panel will go here */}
+        </div>
+      </div>
+    </main>
   );
 };
 
-export const builderLoader: LoaderFunction<ResumeDto> = async ({ params }) => {
+export const builderLoader: LoaderFunction = async ({ params }) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    // Create a new Supabase client
+    const supabase = createClient(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_ANON_KEY,
+    );
+
+    // Check if user is authenticated
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return redirect("/auth/login");
+
     const id = params.id!;
 
-    const resume = await queryClient.fetchQuery({
-      queryKey: ["resume", { id }],
-      queryFn: () => findResumeById({ id }),
-    });
+    // Get the resume and verify ownership
+    const { data: resume, error } = await supabase
+      .from('resumes_v3')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
 
+    if (error || !resume) {
+      return redirect("/dashboard");
+    }
+
+    // Set the resume in the store
     useResumeStore.setState({ resume });
     useResumeStore.temporal.getState().clear();
 

@@ -21,6 +21,6 @@ export class StorageController {
   @UseGuards(SupabaseGuard)
   @UseInterceptors(FileInterceptor("file"))
   async uploadFile(@SupabaseUser() user: User, @UploadedFile("file") file: Express.Multer.File) {
-    return this.storageService.upload(user.id, file);
+    return this.storageService.uploadObject(user.id, "pictures", file.buffer, file.fieldname);
   }
 }

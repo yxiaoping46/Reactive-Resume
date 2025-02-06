@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "@/client/providers/auth.provider";
 
 export const AuthGuard = () => {
@@ -11,5 +11,5 @@ export const AuthGuard = () => {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  return <Navigate to={location.state?.from ?? "/dashboard"} replace />;
+  return <Outlet />;
 };

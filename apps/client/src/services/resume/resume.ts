@@ -1,15 +1,58 @@
 import type { ResumeDto } from "@reactive-resume/dto";
+import { useQuery } from "@tanstack/react-query";
+import { useSupabase } from "@/client/providers/supabase.provider";
 
-import { axios } from "@/client/libs/axios";
+export const useResumes = () => {
+  const { supabase } = useSupabase();
 
-export const findResumeById = async (data: { id: string }) => {
-  const response = await axios.get<ResumeDto>(`/resume/${data.id}`);
+  return useQuery({
+    queryKey: ["resumes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('resumes_v3')
+        .select('*')
+        .order('updated_at', { ascending: false });
 
-  return response.data;
+      if (error) throw error;
+      return data;
+    },
+  });
 };
 
-export const findResumeByUsernameSlug = async (data: { username: string; slug: string }) => {
-  const response = await axios.get<ResumeDto>(`/resume/public/${data.username}/${data.slug}`);
+export const useResume = (id: string) => {
+  const { supabase } = useSupabase();
 
-  return response.data;
+  return useQuery({
+    queryKey: ["resume", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('resumes_v3')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+export const usePublicResume = (username: string, slug: string) => {
+  const { supabase } = useSupabase();
+
+  return useQuery({
+    queryKey: ["resume", username, slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('resumes_v3')
+        .select('*, users!inner(username)')
+        .eq('users.username', username)
+        .eq('slug', slug)
+        .eq('visibility', 'public')
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
 };

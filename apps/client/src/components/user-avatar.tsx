@@ -1,5 +1,5 @@
 import { getInitials } from "@reactive-resume/utils";
-
+import { User } from '@supabase/supabase-js';
 import { useUser } from "../services/user";
 
 type Props = {
@@ -14,17 +14,18 @@ export const UserAvatar = ({ size = 36, className }: Props) => {
 
   let picture: React.ReactNode;
 
-  if (user.picture) {
+  if (user.user_metadata?.picture) {
     picture = (
       <img
-        alt={user.name}
-        src={user.picture}
+        alt={user.user_metadata?.name || user.email}
+        src={user.user_metadata.picture}
         className="rounded-full"
         style={{ width: size, height: size }}
       />
     );
   } else {
-    const initials = getInitials(user.name);
+    const name = user.user_metadata?.name || user.email || 'User';
+    const initials = getInitials(name);
 
     picture = (
       <div
