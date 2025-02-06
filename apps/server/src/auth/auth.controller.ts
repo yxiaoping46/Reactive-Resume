@@ -9,10 +9,8 @@ import {
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import {
-  ForgotPasswordDto,
   LoginDto,
   RegisterDto,
-  ResetPasswordDto,
 } from "@reactive-resume/dto";
 import type { Response } from "express";
 import { SupabaseAuthService } from './supabase-auth.service';
@@ -87,30 +85,5 @@ export class AuthController {
     await this.supabaseAuthService.signOut(user.id);
     response.clearCookie("sb-access-token");
     return { message: "Logged out successfully" };
-  }
-
-  @Post("forgot-password")
-  async forgotPassword(@Body() { email }: ForgotPasswordDto) {
-    try {
-      await this.supabaseAuthService.resetPasswordForEmail(email);
-      return {
-        message: "If an account exists with that email, you will receive a password reset link.",
-      };
-    } catch (error) {
-      // Don't expose whether the email exists or not
-      return {
-        message: "If an account exists with that email, you will receive a password reset link.",
-      };
-    }
-  }
-
-  @Post("reset-password")
-  async resetPassword(@Body() { token, password }: ResetPasswordDto) {
-    try {
-      await this.supabaseAuthService.updatePassword(token, password);
-      return { message: "Your password has been successfully reset." };
-    } catch (error) {
-      throw new BadRequestException("Invalid or expired reset token");
-    }
   }
 }

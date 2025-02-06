@@ -28,7 +28,7 @@ import { UserModule } from "./user/user.module";
     HealthModule,
 
     // Feature Modules
-    AuthModule.register(),
+    AuthModule,
     UserModule,
     ResumeModule,
     StorageModule,

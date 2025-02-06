@@ -116,7 +116,7 @@ export class ResumeController {
     return this.resumeService.remove(user.id, id);
   }
 
-  @Get(":id/print")
+  @Get("/print/:id")
   async printResume(@SupabaseUser() user: User | undefined, @Resume() resume: ResumeDto) {
     try {
       const url = await this.resumeService.printResume(resume, user?.id);
@@ -130,17 +130,14 @@ export class ResumeController {
     }
   }
 
-  @Get(":id/download")
-  @UseGuards(SupabaseGuard, ResumeGuard)
-  async downloadResume(@Resume() resume: ResumeDto) {
+  @Get("/print/:id/preview")
+  async printPreview(@Resume() resume: ResumeDto) {
     try {
-      const url = await this.resumeService.downloadResume(resume);
+      const url = await this.resumeService.printPreview(resume);
+
       return { url };
     } catch (error) {
       Logger.error(error);
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
       throw new InternalServerErrorException(error);
     }
   }
