@@ -10,8 +10,10 @@ export const configSchema = z.object({
   PUBLIC_URL: z.string().url(),
   STORAGE_URL: z.string().url(),
 
-  // Database (Prisma)
-  DATABASE_URL: z.string().url().startsWith("postgresql://"),
+  // Supabase Configuration
+  SUPABASE_URL: z.string().url(),
+  SUPABASE_ANON_KEY: z.string(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string(),
 
   // Authentication Secrets
   ACCESS_TOKEN_SECRET: z.string(),

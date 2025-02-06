@@ -12,7 +12,6 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import {
   CreateResumeDto,
   importResumeSchema,
@@ -45,11 +44,10 @@ export class ResumeController {
     try {
       return await this.resumeService.create(user.id, createResumeDto);
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new BadRequestException(ErrorMessage.ResumeSlugAlreadyExists);
-      }
-
       Logger.error(error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new InternalServerErrorException(error);
     }
   }
@@ -61,11 +59,10 @@ export class ResumeController {
       const result = importResumeSchema.parse(importResumeDto);
       return await this.resumeService.import(user.id, result);
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new BadRequestException(ErrorMessage.ResumeSlugAlreadyExists);
-      }
-
       Logger.error(error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new InternalServerErrorException(error);
     }
   }
@@ -126,6 +123,9 @@ export class ResumeController {
       return { url };
     } catch (error) {
       Logger.error(error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new InternalServerErrorException(error);
     }
   }
@@ -138,6 +138,9 @@ export class ResumeController {
       return { url };
     } catch (error) {
       Logger.error(error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new InternalServerErrorException(error);
     }
   }

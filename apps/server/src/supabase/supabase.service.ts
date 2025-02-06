@@ -1,10 +1,11 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@reactive-resume/dto';
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
-  private supabaseClient: SupabaseClient;
+  private supabaseClient: SupabaseClient<Database>;
 
   constructor(private configService: ConfigService) {}
 
@@ -16,7 +17,7 @@ export class SupabaseService implements OnModuleInit {
       throw new Error('Missing Supabase configuration. Please check your environment variables.');
     }
 
-    this.supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    this.supabaseClient = createClient<Database>(supabaseUrl, supabaseServiceRoleKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
@@ -24,7 +25,7 @@ export class SupabaseService implements OnModuleInit {
     });
   }
 
-  get client(): SupabaseClient {
+  get client(): SupabaseClient<Database> {
     return this.supabaseClient;
   }
 } 

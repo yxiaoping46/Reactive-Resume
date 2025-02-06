@@ -11,8 +11,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { UpdateUserDto, UserDto } from "@reactive-resume/dto";
+import { UpdateUserDto } from "@reactive-resume/dto";
 import { ErrorMessage } from "@reactive-resume/utils";
 import type { Response } from "express";
 
@@ -39,13 +38,15 @@ export class UserController {
   async update(@SupabaseUser() user: User, @Body() updateUserDto: UpdateUserDto) {
     try {
       return await this.userService.updateByEmail(user.email!, {
-        name: updateUserDto.name,
-        picture: updateUserDto.picture,
-        username: updateUserDto.username,
-        locale: updateUserDto.locale,
+        user_metadata: {
+          name: updateUserDto.name,
+          picture: updateUserDto.picture,
+          username: updateUserDto.username,
+          locale: updateUserDto.locale,
+        }
       });
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError && error.code === "P2002") {
+      if (error.code === '23505') { // Unique violation in Postgres
         throw new BadRequestException(ErrorMessage.UserAlreadyExists);
       }
 
