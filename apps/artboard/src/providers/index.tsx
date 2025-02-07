@@ -24,11 +24,9 @@ export const Providers = () => {
 
   useEffect(() => {
     const resumeData = window.localStorage.getItem("resume");
-
     if (resumeData) setResume(JSON.parse(resumeData));
   }, [window.localStorage.getItem("resume")]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!resume) return null;
 
   return (

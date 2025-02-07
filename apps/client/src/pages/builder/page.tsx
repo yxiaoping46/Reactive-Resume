@@ -7,10 +7,28 @@ import type { LoaderFunction } from "react-router";
 import { redirect } from "react-router";
 import { createClient } from "@supabase/supabase-js";
 import { useResumeStore } from "@/client/stores/resume";
+import { useEffect, useRef } from "react";
 
 export const BuilderPage = () => {
   const { id = "" } = useParams();
   const { data: resume, isPending: loading } = useResume(id);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    if (resume && iframeRef.current) {
+      const onIframeLoad = () => {
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "SET_RESUME", payload: resume.data },
+          window.location.origin
+        );
+      };
+
+      iframeRef.current.addEventListener('load', onIframeLoad);
+      return () => {
+        iframeRef.current?.removeEventListener('load', onIframeLoad);
+      };
+    }
+  }, [resume]);
 
   if (loading) {
     return (
@@ -52,6 +70,7 @@ export const BuilderPage = () => {
       <div className="relative flex grow flex-col">
         <BuilderHeader />
         <iframe
+          ref={iframeRef}
           title={resume.title}
           src={`/artboard/builder?resumeId=${resume.id}`}
           className="h-full w-full"
