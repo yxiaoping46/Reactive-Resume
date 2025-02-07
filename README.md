@@ -67,7 +67,7 @@ Start creating your standout resume with Reactive Resume today!
 
 - React (Vite), for the frontend
 - NestJS, for the backend
-- Postgres (primary database)
+- Supabase (for authentication and database)
 - Minio (for object storage: to store avatars, resume PDFs and previews)
 - Browserless (for headless chrome, to print PDFs and generate previews)
 - SMTP Server (to send password recovery emails)
@@ -96,7 +96,7 @@ To set up the project for local development, follow these steps:
    ```
 
 4. **Start Development Services**
-   Start the required services (database, storage, etc.) using Docker Compose:
+   Start the required services (storage and browser) using Docker Compose:
    ```bash
    docker compose -f compose.dev.yml up -d
    ```
@@ -108,54 +108,6 @@ To set up the project for local development, follow these steps:
    ```
 
 After completing these steps, the development server should be running at `http://localhost:5173` for the frontend and `http://localhost:3000` for the backend API.
-
-### Querying the Local Database
-
-There are two ways to access and query the local PostgreSQL database:
-
-1. **Using Adminer (Recommended)**
-   - Open `http://localhost:5555` in your browser
-   - Use these credentials to login:
-     ```
-     System: PostgreSQL
-     Server: postgres
-     Username: postgres
-     Password: postgres
-     Database: postgres
-     ```
-   - Once logged in, you can browse tables, execute SQL queries, and manage the database through the web interface
-
-2. **Using PostgreSQL CLI**
-   - Connect to the database through Docker:
-     ```bash
-     docker compose -f compose.dev.yml exec postgres psql -U postgres -d postgres
-     ```
-   - Useful PostgreSQL commands:
-     ```sql
-     -- List all tables in the database
-     postgres=# \dt
-     
-     -- Describe the structure of a specific table (e.g., User table)
-     postgres=# \d "User"
-     
-     -- Query all users from the User table
-     postgres=# SELECT * FROM "User";
-     
-     -- Query specific columns from User table
-     postgres=# SELECT id, email, name FROM "User";
-     
-     -- Query with conditions
-     postgres=# SELECT * FROM "User" WHERE email LIKE '%@example.com';
-     
-     -- Count total users
-     postgres=# SELECT COUNT(*) FROM "User";
-     
-     -- List all resumes for a specific user
-     postgres=# SELECT * FROM "Resume" WHERE "userId" = 'your-user-id';
-     
-     -- Exit the PostgreSQL CLI
-     postgres=# \q
-     ```
 
 ## Star History
 

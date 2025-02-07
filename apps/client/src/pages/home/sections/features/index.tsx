@@ -86,8 +86,8 @@ export const FeaturesSection = () => {
             height={14}
           />
           <img
-            src="https://cdn.simpleicons.org/postgresql"
-            alt="PostgreSQL"
+            src="https://cdn.simpleicons.org/supabase"
+            alt="Supabase"
             width={14}
             height={14}
           />

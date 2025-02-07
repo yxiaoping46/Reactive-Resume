@@ -6,22 +6,6 @@ version: "3.8"
 # Note: Please change `example.com` to your domain name where necessary.
 
 services:
-  # Database (Postgres)
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Storage (for image uploads)
   minio:
     image: minio/minio:latest
@@ -30,8 +14,10 @@ services:
     volumes:
       - minio_data:/data
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ADDRESS: :9000
+      MINIO_CONSOLE_ADDRESS: :9001
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY:-minioadmin}
     labels:
       - traefik.enable=true
       - traefik.http.routers.storage.rule=Host(`storage.example.com`)
@@ -45,7 +31,7 @@ services:
     restart: unless-stopped
     environment:
       HEALTH: "true"
-      TOKEN: chrome_token
+      TOKEN: ${CHROME_TOKEN:-chrome_token}
       PROXY_HOST: "printer.example.com"
       PROXY_PORT: 443
       PROXY_SSL: "true"
@@ -56,75 +42,68 @@ services:
       - traefik.http.routers.printer.tls.certresolver=letsencrypt
       - traefik.http.services.printer.loadbalancer.server.port=3000
 
-  app:
-    image: amruthpillai/reactive-resume:latest
+  server:
+    image: amruthpillai/reactive-resume:server
     restart: unless-stopped
     depends_on:
-      - postgres
       - minio
       - chrome
     environment:
-      # -- Environment Variables --
-      PORT: 3000
+      # Environment
       NODE_ENV: production
 
-      # -- URLs --
+      # URLs
       PUBLIC_URL: https://example.com
       STORAGE_URL: https://storage.example.com
 
-      # -- Printer (Chrome) --
-      CHROME_TOKEN: chrome_token
+      # Chrome Browser
+      CHROME_TOKEN: ${CHROME_TOKEN:-chrome_token}
       CHROME_URL: wss://printer.example.com
 
-      # -- Database (Postgres) --
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
-
-      # -- Auth --
-      ACCESS_TOKEN_SECRET: access_token_secret
-      REFRESH_TOKEN_SECRET: refresh_token_secret
-
-      # -- Emails --
-      MAIL_FROM: noreply@example.com
-      # SMTP_URL: smtp://user:pass@smtp:587 # Optional
-
-      # -- Storage (Minio) --
+      # Storage
       STORAGE_ENDPOINT: minio
       STORAGE_PORT: 9000
-      STORAGE_REGION: us-east-1 # Optional
-      STORAGE_BUCKET: default
-      STORAGE_ACCESS_KEY: minioadmin
-      STORAGE_SECRET_KEY: minioadmin
-      STORAGE_USE_SSL: "false"
-      STORAGE_SKIP_BUCKET_CHECK: "false"
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-default}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minioadmin}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-minioadmin}
+      STORAGE_USE_SSL: ${STORAGE_USE_SSL:-false}
 
-      # -- Crowdin (Optional) --
-      # CROWDIN_PROJECT_ID:
-      # CROWDIN_PERSONAL_TOKEN:
+      # Authentication Secrets
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
 
-      # -- Feature Flags (Optional) --
-      # DISABLE_SIGNUPS: "false"
-      # DISABLE_EMAIL_AUTH: "false"
+      # Mail Server
+      MAIL_FROM: ${MAIL_FROM:-noreply@example.com}
+      SMTP_URL: ${SMTP_URL}
 
-      # -- GitHub (Optional) --
-      # GITHUB_CLIENT_ID: github_client_id
-      # GITHUB_CLIENT_SECRET: github_client_secret
-      # GITHUB_CALLBACK_URL: https://example.com/api/auth/github/callback
+      # Supabase Configuration
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
 
-      # -- Google (Optional) --
-      # GOOGLE_CLIENT_ID: google_client_id
-      # GOOGLE_CLIENT_SECRET: google_client_secret
-      # GOOGLE_CALLBACK_URL: https://example.com/api/auth/google/callback
+      # Feature Flags
+      DISABLE_SIGNUPS: ${DISABLE_SIGNUPS:-false}
 
-      # -- OpenID (Optional) --
-      # VITE_OPENID_NAME: OpenID
-      # OPENID_AUTHORIZATION_URL:
-      # OPENID_CALLBACK_URL: https://example.com/api/auth/openid/callback
-      # OPENID_CLIENT_ID:
-      # OPENID_CLIENT_SECRET:
-      # OPENID_ISSUER:
-      # OPENID_SCOPE: openid profile email
-      # OPENID_TOKEN_URL:
-      # OPENID_USER_INFO_URL:
+      # OAuth Providers
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      GITHUB_CALLBACK_URL: https://example.com/api/auth/github/callback
+
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: https://example.com/api/auth/google/callback
+
+      # OpenID Provider
+      VITE_OPENID_NAME: ${VITE_OPENID_NAME}
+      OPENID_CLIENT_ID: ${OPENID_CLIENT_ID}
+      OPENID_CLIENT_SECRET: ${OPENID_CLIENT_SECRET}
+      OPENID_ISSUER: ${OPENID_ISSUER}
+      OPENID_AUTHORIZATION_URL: ${OPENID_AUTHORIZATION_URL}
+      OPENID_TOKEN_URL: ${OPENID_TOKEN_URL}
+      OPENID_USER_INFO_URL: ${OPENID_USER_INFO_URL}
+      OPENID_CALLBACK_URL: https://example.com/api/auth/openid/callback
+      OPENID_SCOPE: ${OPENID_SCOPE}
     labels:
       - traefik.enable=true
       - traefik.http.routers.app.rule=Host(`example.com`)
@@ -159,5 +138,4 @@ services:
 
 volumes:
   minio_data:
-  postgres_data:
   letsencrypt_data:
